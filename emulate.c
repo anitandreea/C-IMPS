@@ -52,25 +52,6 @@ void raiseError( int errorType ) {
 	exit(2);
 }
 
-int extractFromInstruction(int mask, int instruction) {
-	return (instruction & masks[mask]) >> masksShift[mask];	
-}
-
-int getFileSize(char *filename) {
-	FILE *fp = fopen(filename,"rb");
-    	fseek(fp, 0, SEEK_END);
-    	int instructionSize=ftell(fp)>>2;
-	fclose(fp);
-	return instructionSize;
-}
-
-int readInstructions( struct IMPSState * state, char *filename, int fileSize ) {
-	FILE *fp = fopen(filename,"rb");
-	fread(state->memory,sizeof(unsigned int),fileSize,fp);
-	fclose(fp);
-	return SUCCESS;
-}
-
 char *printBits( int number ) {
 	char *binary = (char *)malloc(32*sizeof(char));
 	memset(binary, '\0', 32);
@@ -92,7 +73,35 @@ char *printBits( int number ) {
 	return binary;
 }
 
+int signExt( int x ) {
+	if( x & (1<<15) ) {
+		x = x | ( 1 << 31 >> 15 ) ;
+	}
+	return x;
+}
 
+int extractFromInstruction(int mask, int instruction) {
+	int result = (instruction & masks[mask]) >> masksShift[mask];	
+	if(mask == immediateMask) {
+		result = signExt(result);
+	}
+	return result;
+}
+
+int getFileSize(char *filename) {
+	FILE *fp = fopen(filename,"rb");
+    	fseek(fp, 0, SEEK_END);
+    	int instructionSize=ftell(fp)>>2;
+	fclose(fp);
+	return instructionSize;
+}
+
+int readInstructions( struct IMPSState * state, char *filename, int fileSize ) {
+	FILE *fp = fopen(filename,"rb");
+	fread(state->memory,sizeof(unsigned int),fileSize,fp);
+	fclose(fp);
+	return SUCCESS;
+}
 
 void dumpState( struct IMPSState * state ) {
 	printf("\nRegisters:\n");
