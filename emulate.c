@@ -89,8 +89,8 @@ int extractFromInstruction(int mask, int instruction) {
 }
 
 int getFileSize(char *filename) {
-	FILE *fp = fopen(filename,"rb");
-    	fseek(fp, 0, SEEK_END);
+	FILE *fp = fopen(filename,"rb");    
+	fseek(fp, 0, SEEK_END);
     	int instructionSize=ftell(fp)>>2;
 	fclose(fp);
 	return instructionSize;
@@ -98,7 +98,11 @@ int getFileSize(char *filename) {
 
 int readInstructions( struct IMPSState * state, char *filename, int fileSize ) {
 	FILE *fp = fopen(filename,"rb");
-	fread(state->memory,sizeof(unsigned int),fileSize,fp);
+	if(fp == NULL) {
+		perror("Can't open specified file");
+		exit(3);
+	}
+	fread(state->memory,sizeof(int),fileSize,fp);
 	fclose(fp);
 	return SUCCESS;
 }
@@ -380,9 +384,10 @@ int main( int argc, char **argv) {
 	
 	int result = SUCCESS;
 	int i;
-	for(i = 0; i<256; i++) {
-		printf("$%d:	%d (%x)\n", i, state->memory[i], state->memory[i]);
+	for(i = 0; i<256; i+=4) {
+		printf("$%d:	%d (%x)\n", i, readMemory(state, i), readMemory(state,i));
 	}
+	printf("%d\n",readMemory(state, 184));
 	while(result != HALT) {
 		state->IR = readMemory(state, state->PC);
 		int OpCode = extractFromInstruction(opCodeMask, state->IR);
