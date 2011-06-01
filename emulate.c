@@ -24,8 +24,8 @@ int masksShift[] = {26,21,16,11,0,0};
 struct IMPSState {
 	char memory[65536] ;
 	int registers[32] ;
-	unsigned int PC;
-	unsigned int IR;
+	int PC;
+	int IR;
 };
 
 void LOG_DEBUG( char *format, ... ) {
@@ -135,14 +135,14 @@ void writeMemory(struct IMPSState * state, int address, int data) {
 	if( address > 65535 || address < 0 ) {
 		raiseError(ADDRESS_OUT_OF_BOUNDS);
 	}
-	*((unsigned int *)&state->memory[address]) = data;
+	*((int *)&state->memory[address]) = data;
 }
 
-unsigned int readMemory(struct IMPSState * state, int address) {
+int readMemory(struct IMPSState * state, int address) {
 	if( address > 65535 || address < 0 ) {
 		raiseError(ADDRESS_OUT_OF_BOUNDS);
 	}
-	unsigned int data = *((unsigned int *)&state->memory[address]);
+	int data = *((int *)&state->memory[address]);
 	return data;
 }
 
@@ -379,12 +379,14 @@ int main( int argc, char **argv) {
 	readInstructions(state, argv[1], getFileSize(argv[1]));
 	
 	int result = SUCCESS;
-	
+	int i;
+	for(i = 0; i<256; i++) {
+		printf("$%d:	%d (%x)\n", i, state->memory[i], state->memory[i]);
+	}
 	while(result != HALT) {
 		state->IR = readMemory(state, state->PC);
 		int OpCode = extractFromInstruction(opCodeMask, state->IR);
 		result = (*OpCodeFunction[checkOpCode(OpCode)])(state);
-//		dumpState(state);
 	}
 	state->PC = state->PC + 4;
 	dumpState(state);
