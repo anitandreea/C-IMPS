@@ -88,31 +88,27 @@ int extractFromInstruction(int mask, int instruction) {
 	return result;
 }
 
-int getFileSize(char *filename) {
-	FILE *fp = fopen(filename,"rb");    
-	fseek(fp, 0, SEEK_END);
-    	int instructionSize=ftell(fp)>>2;
-	fclose(fp);
-	return instructionSize;
-}
-
-int readInstructions( struct IMPSState * state, char *filename, int fileSize ) {
+int readInstructions( struct IMPSState * state, char *filename ) {
 	FILE *fp = fopen(filename,"rb");
 	if(fp == NULL) {
 		perror("Can't open specified file");
 		exit(3);
 	}
-	fread(state->memory,sizeof(int),fileSize,fp);
+	fseek(fp, 0, SEEK_END);
+    	int size=ftell(fp)>>2;
+	fseek(fp, 0, SEEK_SET);
+
+	fread(state->memory,sizeof(int),size,fp);
 	fclose(fp);
 	return SUCCESS;
 }
 
 void dumpState( struct IMPSState * state ) {
 	printf("\nRegisters:\n");
-	printf("PC :	%d (%x)\n", state->PC, state->PC);
+	printf("PC :	%7d (0x%08x)\n", state->PC, state->PC);
 	int i;
 	for(i =0; i<32; i++) {
-		printf("$%d:	%d (%x)\n", i, state->registers[i], state->registers[i]);
+		printf("$%-2d:	%7d (0x%08x)\n", i, state->registers[i], state->registers[i]);
 	}
 }
 
@@ -380,14 +376,9 @@ int main( int argc, char **argv) {
 	OpCodeFunction[16] = &jr;
 	OpCodeFunction[17] = &jal;
 
-	readInstructions(state, argv[1], getFileSize(argv[1]));
+	readInstructions(state, argv[1]);
 	
 	int result = SUCCESS;
-	int i;
-	for(i = 0; i<256; i+=4) {
-		printf("$%d:	%d (%x)\n", i, readMemory(state, i), readMemory(state,i));
-	}
-	printf("%d\n",readMemory(state, 184));
 	while(result != HALT) {
 		state->IR = readMemory(state, state->PC);
 		int OpCode = extractFromInstruction(opCodeMask, state->IR);
