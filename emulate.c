@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 
-#define DEBUG 1
+#define DEBUG 0
 #define opCodeMask 0
 #define r1Mask 1
 #define r2Mask 2
@@ -18,7 +18,7 @@
 #define ILLEGAL_OPCODE 11
 #define REG_ADDRESS_OUT_OF_BOUNDS 12
 
-int masks[] = {-1 << 26, (-1 << 26) ^ (-1) ^ (1<<31>>10 ^ -1), (-1 << 21) ^ (-1) ^ (1<<31>>15 ^ -1), (-1 << 16) ^ (-1) ^ (1<<31>>20 ^ -1), (1 << 31 >> 15) ^ (-1), (1 << 31 >> 5) ^ (-1)};
+int masks[] = {0xfc000000,0x03e00000,0x001f0000,0x0000f800,0x0000ffff,0x03ffffff};
 int masksShift[] = {26,21,16,11,0,0};
 
 struct IMPSState {
@@ -28,10 +28,35 @@ struct IMPSState {
 	int IR;
 };
 
-void LOG_DEBUG( char *format, ... ) {
+char *printBits( int number ) {
+	char * binary = (char *)malloc(32*sizeof(char));
+	int mask = 1 << 31;
+	int i;
+	int s = 1;
+	for(i=0;i<32;i++) {
+		if((number & mask) == 0) {
+			strcat(binary,"0");
+		} else { 
+			strcat(binary, "1");
+		}
+		if(s % 8 == 0) {
+			strcat(binary, " ");
+		}
+		++s;
+		number = number << 1;
+	}
+	return binary;
+}
+
+void LOG_DEBUG( int * IR, char *format, ... ) {
 	if(DEBUG == 1) {
 		va_list arguments;
 		va_start( arguments, format);
+		if( IR != NULL ) {
+			char * IRbinary = printBits(*IR);
+			printf("Instruction: %s; ", IRbinary);
+			free(IRbinary);
+		}
 		vprintf(format, arguments);
 		va_end(arguments);
 	}
@@ -50,27 +75,6 @@ void raiseError( int errorType ) {
 			break;
 	}
 	exit(2);
-}
-
-char *printBits( int number ) {
-	char *binary = (char *)malloc(32*sizeof(char));
-	memset(binary, '\0', 32);
-	int mask = 1 << 31;
-	int i;
-	int s = 1;
-	for(i=0;i<32;i++) {
-		if((number & mask) == 0) {
-			strcat(binary,"0");
-		} else { 
-			strcat(binary, "1");
-		}
-		if(s % 8 == 0) {
-			strcat(binary, " ");
-		}
-		++s;
-		number = number << 1;
-	}
-	return binary;
 }
 
 int signExt( int x ) {
@@ -168,7 +172,7 @@ int checkOpCode(int opCode) {
 }
 
 int halt(struct IMPSState * state) {
-      	LOG_DEBUG("Instruction: %s; (HALT)\n",printBits(state->IR));
+      	LOG_DEBUG(&state->IR,"(HALT)\n");
 	return HALT;
 }
 
@@ -176,7 +180,7 @@ int add(struct IMPSState * state) {
 	int r1 = extractFromInstruction(r1Mask, state->IR);
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int r3 = readRegister(state, extractFromInstruction(r3Mask, state->IR));
-      	LOG_DEBUG("Instruction: %s; (R%d = %d + %d)\n",printBits(state->IR),r1,r2,r3);
+      	LOG_DEBUG(&state->IR, "(R%d = %d + %d)\n",r1,r2,r3);
 	writeRegister(state, r1, r2+r3);	
 	state->PC = state->PC + 4;
 	return SUCCESS;
@@ -186,7 +190,7 @@ int addi(struct IMPSState * state) {
 	int r1 = extractFromInstruction(r1Mask, state->IR);
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int c = extractFromInstruction(immediateMask, state->IR);
-      	LOG_DEBUG("Instruction: %s; (R%d = %d + %d)\n",printBits(state->IR),r1,r2,c);
+      	LOG_DEBUG(&state->IR,"(R%d = %d + %d)\n",r1,r2,c);
 	writeRegister(state, r1, r2+c);	
 	state->PC = state->PC + 4;
 	return SUCCESS;
@@ -196,7 +200,7 @@ int sub(struct IMPSState * state) {
 	int r1 = extractFromInstruction(r1Mask, state->IR);
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int r3 = readRegister(state, extractFromInstruction(r3Mask, state->IR));
-      	LOG_DEBUG("Instruction: %s; (R%d = %d - %d)\n",printBits(state->IR),r1,r2,r3);
+      	LOG_DEBUG(&state->IR,"(R%d = %d - %d)\n",r1,r2,r3);
 	writeRegister(state, r1, r2-r3);	
 	state->PC = state->PC + 4;
 	return SUCCESS;
@@ -206,7 +210,7 @@ int subi(struct IMPSState * state) {
 	int r1 = extractFromInstruction(r1Mask, state->IR);
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int c = extractFromInstruction(immediateMask, state->IR);
-      	LOG_DEBUG("Instruction: %s; (R%d = %d - %d)\n",printBits(state->IR),r1,r2,c);
+      	LOG_DEBUG(&state->IR,"(R%d = %d - %d)\n",r1,r2,c);
 	writeRegister(state, r1, r2-c);	
 	state->PC = state->PC + 4;
 	return SUCCESS;
@@ -216,7 +220,7 @@ int mul(struct IMPSState * state) {
 	int r1 = extractFromInstruction(r1Mask, state->IR);
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int r3 = readRegister(state, extractFromInstruction(r3Mask, state->IR));
-      	LOG_DEBUG("Instruction: %s; (R%d = %d * %d)\n",printBits(state->IR),r1,r2,r3);
+      	LOG_DEBUG(&state->IR,"(R%d = %d * %d)\n",r1,r2,r3);
 	writeRegister(state, r1, r2*r3);	
 	state->PC = state->PC + 4;
 	return SUCCESS;
@@ -226,7 +230,7 @@ int muli(struct IMPSState * state) {
 	int r1 = extractFromInstruction(r1Mask, state->IR);
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int c = extractFromInstruction(immediateMask, state->IR);
-      	LOG_DEBUG("Instruction: %s; (R%d = %d * %d)\n",printBits(state->IR),r1,r2,c);
+      	LOG_DEBUG(&state->IR,"(R%d = %d * %d)\n",r1,r2,c);
 	writeRegister(state, r1, r2*c);	
 	state->PC = state->PC + 4;
 	return SUCCESS;
@@ -236,7 +240,7 @@ int lw(struct IMPSState * state) {
 	int r1 = extractFromInstruction(r1Mask, state->IR);
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int c = extractFromInstruction(immediateMask, state->IR);
-      	LOG_DEBUG("Instruction: %s; (R%d = MEMORY[%d + %d])\n",printBits(state->IR),r1,r2,c);
+      	LOG_DEBUG(&state->IR,"(R%d = MEMORY[%d + %d])\n",r1,r2,c);
 	writeRegister(state, r1, readMemory(state, r2+c));	
 	state->PC = state->PC + 4;
 	return SUCCESS;
@@ -246,7 +250,7 @@ int sw(struct IMPSState * state) {
 	int r1 = extractFromInstruction(r1Mask, state->IR);
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int c = extractFromInstruction(immediateMask, state->IR);
-      	LOG_DEBUG("Instruction: %s; (MEMORY[%d + %d] = R%d)\n",printBits(state->IR),r2,c,r1);
+      	LOG_DEBUG(&state->IR,"(MEMORY[%d + %d] = R%d)\n",r2,c,r1);
 	writeMemory(state, r2+c, readRegister(state,r1));	
 	state->PC = state->PC + 4;
 	return SUCCESS;
@@ -256,7 +260,7 @@ int beq(struct IMPSState * state) {
 	int r1 = readRegister(state, extractFromInstruction(r1Mask, state->IR));
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int c = extractFromInstruction(immediateMask, state->IR);
-      	LOG_DEBUG("Instruction: %s; (If %d == %d then PC = PC + %d * 4)\n",printBits(state->IR),r1,r2,c);
+      	LOG_DEBUG(&state->IR,"(If %d == %d then PC = PC + %d * 4)\n",r1,r2,c);
 	if(r1 == r2) {
 		state->PC = state->PC + c*4;
 	} else {
@@ -269,7 +273,7 @@ int bne(struct IMPSState * state) {
 	int r1 = readRegister(state, extractFromInstruction(r1Mask, state->IR));
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int c = extractFromInstruction(immediateMask, state->IR);
-      	LOG_DEBUG("Instruction: %s; (If %d != %d then PC = PC + %d * 4)\n",printBits(state->IR),r1,r2,c);
+      	LOG_DEBUG(&state->IR,"(If %d != %d then PC = PC + %d * 4)\n",r1,r2,c);
 	if(r1 != r2) {
 		state->PC = state->PC + c*4;
 	} else {
@@ -282,7 +286,7 @@ int blt(struct IMPSState * state) {
 	int r1 = readRegister(state, extractFromInstruction(r1Mask, state->IR));
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int c = extractFromInstruction(immediateMask, state->IR);
-      	LOG_DEBUG("Instruction: %s; (If %d < %d then PC = PC + %d * 4)\n",printBits(state->IR),r1,r2,c);
+      	LOG_DEBUG(&state->IR,"(If %d < %d then PC = PC + %d * 4)\n",r1,r2,c);
 	if(r1 < r2) {
 		state->PC = state->PC + c*4;
 	} else {
@@ -295,7 +299,7 @@ int bgt(struct IMPSState * state) {
 	int r1 = readRegister(state, extractFromInstruction(r1Mask, state->IR));
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int c = extractFromInstruction(immediateMask, state->IR);
-      	LOG_DEBUG("Instruction: %s; (If %d > %d then PC = PC + %d * 4)\n",printBits(state->IR),r1,r2,c);
+      	LOG_DEBUG(&state->IR,"(If %d > %d then PC = PC + %d * 4)\n",r1,r2,c);
 	if(r1 > r2) {
 		state->PC = state->PC + c*4;
 	} else {
@@ -308,7 +312,7 @@ int ble(struct IMPSState * state) {
 	int r1 = readRegister(state, extractFromInstruction(r1Mask, state->IR));
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int c = extractFromInstruction(immediateMask, state->IR);
-      	LOG_DEBUG("Instruction: %s; (If %d <= %d then PC = PC + %d * 4)\n",printBits(state->IR),r1,r2,c);
+      	LOG_DEBUG(&state->IR,"(If %d <= %d then PC = PC + %d * 4)\n",r1,r2,c);
 	if(r1 <= r2) {
 		state->PC = state->PC + c*4;
 	} else {
@@ -321,7 +325,7 @@ int bge(struct IMPSState * state) {
 	int r1 = readRegister(state, extractFromInstruction(r1Mask, state->IR));
 	int r2 = readRegister(state, extractFromInstruction(r2Mask, state->IR));
 	int c = extractFromInstruction(immediateMask, state->IR);
-      	LOG_DEBUG("Instruction: %s; (If %d >= %d then PC = PC + %d * 4)\n",printBits(state->IR),r1,r2,c);
+      	LOG_DEBUG(&state->IR,"(If %d >= %d then PC = PC + %d * 4)\n",r1,r2,c);
 	if(r1 >= r2) {
 		state->PC = state->PC + c*4;
 	} else {
@@ -332,21 +336,21 @@ int bge(struct IMPSState * state) {
 
 int jmp(struct IMPSState * state) {
 	int a = extractFromInstruction(addressMask, state->IR);
-      	LOG_DEBUG("Instruction: %s; ([JMP] PC = %d)\n",printBits(state->IR),a);
+      	LOG_DEBUG(&state->IR,"([JMP] PC = %d)\n",a);
 	state->PC = a;
 	return SUCCESS;
 }
 
 int jr(struct IMPSState * state) {
 	int r1 = readRegister(state, extractFromInstruction(r1Mask, state->IR));
-      	LOG_DEBUG("Instruction: %s; ([JR] PC = %d)\n",printBits(state->IR),r1);
+      	LOG_DEBUG(&state->IR,"([JR] PC = %d)\n",r1);
 	state->PC = r1;
 	return SUCCESS;
 }
 
 int jal(struct IMPSState * state) {
 	int a = extractFromInstruction(addressMask, state->IR);
-      	LOG_DEBUG("Instruction: %s; (R31 = PC + 4; PC = %d)\n",printBits(state->IR),a);
+      	LOG_DEBUG(&state->IR,"(R31 = PC + 4; PC = %d)\n",a);
 	writeRegister(state, 31, state->PC+4);
 	state->PC = a;
 	return SUCCESS;
