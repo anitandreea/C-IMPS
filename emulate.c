@@ -29,6 +29,7 @@ struct IMPSState {
 };
 
 void LOG_DEBUG( char *format, ... ) {
+	//Debugging mode prints instructions and object file code.
 	if(DEBUG == 1) {
 		va_list arguments;
 		va_start( arguments, format);
@@ -113,6 +114,7 @@ void dumpState( struct IMPSState * state ) {
 }
 
 struct IMPSState * initState() {
+	//Allocates memory for a new IMPS state and sets all mem and reg to 0.
 	struct IMPSState *state;
 	state = (struct IMPSState *)malloc(sizeof(struct IMPSState));
 	if(state == NULL) {
@@ -122,7 +124,7 @@ struct IMPSState * initState() {
 	int i;
 	for(i=0; i<65535; i++) {
 		state->memory[i] = 0;
-	}
+	}	
 	for(i=0; i<32; i++) {
 		state->registers[i] = 0;
 	}
@@ -166,6 +168,9 @@ int checkOpCode(int opCode) {
 	}
 	return opCode;
 }
+
+
+//  INSTRUCTION FUNCTIONS  //
 
 int halt(struct IMPSState * state) {
       	LOG_DEBUG("Instruction: %s; (HALT)\n",printBits(state->IR));
@@ -353,9 +358,11 @@ int jal(struct IMPSState * state) {
 }
 
 int main( int argc, char **argv) {
-
+	
+	//Create new IMPS machine state
 	struct IMPSState *state = initState();
-
+	
+	//Set up function pointers
 	int (*OpCodeFunction[18]) (struct IMPSState * state);
 	OpCodeFunction[0] = &halt;
 	OpCodeFunction[1] = &add;
@@ -375,15 +382,18 @@ int main( int argc, char **argv) {
 	OpCodeFunction[15] = &jmp;
 	OpCodeFunction[16] = &jr;
 	OpCodeFunction[17] = &jal;
-
+	
+	//Read in object code file
 	readInstructions(state, argv[1]);
 	
+	//Fetch-execute cycle
 	int result = SUCCESS;
 	while(result != HALT) {
 		state->IR = readMemory(state, state->PC);
 		int OpCode = extractFromInstruction(opCodeMask, state->IR);
 		result = (*OpCodeFunction[checkOpCode(OpCode)])(state);
 	}
+	//Print state and free allocated memory
 	state->PC = state->PC + 4;
 	dumpState(state);
 	free(state);
