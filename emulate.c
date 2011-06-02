@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 
-#define DEBUG 1
+#define DEBUG 0
 #define opCodeMask 0
 #define r1Mask 1
 #define r2Mask 2
@@ -105,10 +105,10 @@ int readInstructions( struct IMPSState * state, char *filename ) {
 
 void dumpState( struct IMPSState * state ) {
 	printf("\nRegisters:\n");
-	printf("PC :	%7d (0x%08x)\n", state->PC, state->PC);
+	printf("PC :%11d (0x%08x)\n", state->PC, state->PC);
 	int i;
 	for(i =0; i<32; i++) {
-		printf("$%-2d:	%7d (0x%08x)\n", i, state->registers[i], state->registers[i]);
+		printf("$%-2d:%11d (0x%08x)\n", i, state->registers[i], state->registers[i]);
 	}
 }
 
