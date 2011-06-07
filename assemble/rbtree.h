@@ -1,9 +1,9 @@
-typedef struct rbTreeNode {
+typedef struct treeNode {
 	    void* key;
 		void* value;
-    	struct rbTreeNode* left;
-	    struct rbTreeNode* right;
-		struct rbTreeNode* parent;
+    	struct treeNode* left;
+	    struct treeNode* right;
+		struct treeNode* parent;
 		unsigned char color;
 } *rbTreeNode;
 

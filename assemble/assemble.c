@@ -13,5 +13,6 @@ void writeFile( char *filename, int *instructions, int fileSize ) {
 
 
 int main(int argc, char *argv[]) {
-	return 0;
+	printf("%d\n",argc);	
+	printf("Input File: %s\n Output File: %s\n", argv[1], argv[2]);
 }
