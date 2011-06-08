@@ -67,14 +67,14 @@ int compareStr(void * left, void * right) {
 void parseInputFile(char * fileName, rbTreeNode programTree, rbTreeNode labelTree) {
 	FILE *sourceFile = fopen(fileName, "r");
 	char readBuffer[160];
+	char * instSplit = "$, ";
 	if( sourceFile == NULL ) {
 		perror("Error opening file");
 	} else {
 		int currentLine = 0;
-		aInstruction assemblyInst = (aInstruction)malloc(sizeof(struct assemblyInstruction)); 
 		while(fgets(readBuffer, sizeof(readBuffer), sourceFile) != NULL) {
-			LOG_DEBUG("%s", readBuffer);
-			char * readToken = strtok(readBuffer, ", ");
+			aInstruction assemblyInst = (aInstruction)malloc(sizeof(struct assemblyInstruction)); 
+			char * readToken = strtok(readBuffer, instSplit);
 			if(strstr(readToken, ":") != NULL) {
 				assemblyInst->label = (char *)malloc(sizeof(char)*strlen(readToken)-1);
 				strncpy(assemblyInst->label, readToken, strlen(readToken)-1);
@@ -82,21 +82,54 @@ void parseInputFile(char * fileName, rbTreeNode programTree, rbTreeNode labelTre
 				labelRef labelLine = (labelRef)malloc(sizeof(union labelReference));
 				labelLine->line = currentLine;
 				rbInsert(labelTree, (void *)assemblyInst->label, (void *)labelLine, compareStr);
-				readToken = strtok(NULL, ", ");
+				readToken = strtok(NULL, instSplit);
 			}
 			if(strstr(Rinst, readToken) != NULL) {
-				LOG_DEBUG("R type instruction: %s\n", readToken);	
+				strcpy(assemblyInst->opcode, readToken); 
+				LOG_DEBUG("R type instruction: %s\n", assemblyInst->opcode);
+				assemblyInst->r1 = atoi(strtok(NULL, instSplit));				
+				LOG_DEBUG("r1: %d\n", assemblyInst->r1);
+				assemblyInst->r2 = atoi(strtok(NULL, instSplit));				
+				LOG_DEBUG("r2: %d\n", assemblyInst->r2);
+				assemblyInst->r3 = atoi(strtok(NULL, instSplit));
+				LOG_DEBUG("r3: %d\n", assemblyInst->r3);
 			} else if(strstr(Iinst, readToken) != NULL) {
-				LOG_DEBUG("I type instruction: %s\n", readToken);	
+				strcpy(assemblyInst->opcode, readToken); 
+				LOG_DEBUG("I type instruction: %s\n", assemblyInst->opcode);	
+				assemblyInst->r1 = atoi(strtok(NULL, instSplit));
+				LOG_DEBUG("r1: %d\n", assemblyInst->r1);
+				assemblyInst->r2 = atoi(strtok(NULL, instSplit));
+				LOG_DEBUG("r2: %d\n", assemblyInst->r2);
+				readToken = strtok(NULL, instSplit);
+				assemblyInst->address = (char *)malloc(sizeof(char)*strlen(readToken));
+				strcpy(assemblyInst->address, readToken);
+				LOG_DEBUG("immediate: %s\n", assemblyInst->address);
 			} else if(strstr(Jinst, readToken) != NULL) {
-				LOG_DEBUG("J type instruction: %s\n", readToken);	
+				strcpy(assemblyInst->opcode, readToken); 
+				LOG_DEBUG("J type instruction: %s\n", assemblyInst->opcode);
+				readToken = strtok(NULL, instSplit);
+				assemblyInst->address = (char *)malloc(sizeof(char)*strlen(readToken));
+				strcpy(assemblyInst->address, readToken);
+				LOG_DEBUG("address: %s\n", assemblyInst->address);
+			} else if(strstr(".skip", readToken) != NULL) { 
+				strcpy(assemblyInst->opcode, readToken); 
+				LOG_DEBUG(".skip instruction\n");	
+				assemblyInst->r1 = atoi(strtok(NULL, instSplit));				
+				currentLine += assemblyInst->r1-1;
+				LOG_DEBUG("skip value: %d\n", assemblyInst->r1);
+			} else if(strstr(".fill", readToken) != NULL) {
+				strcpy(assemblyInst->opcode, readToken); 
+				LOG_DEBUG(".fill instruction\n");	
+				assemblyInst->r1 = atoi(strtok(NULL, instSplit));				
+				LOG_DEBUG("fill value: %d\n", assemblyInst->r1);
 			} else {
-				LOG_DEBUG("halt, .fill or .skip instruction: %s\n", readToken);	
+				strcpy(assemblyInst->opcode, readToken); 
+				LOG_DEBUG("halt instruction\n");	
 			}
 			++currentLine;
 		}
 	}
-
+	fclose(sourceFile);
 }
 
 int main(int argc, char *argv[]) {
@@ -105,8 +138,8 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 	
-	printf("%d\n",argc);	
-	printf("Input File: %s\nOutput File: %s\n", argv[1], argv[2]);
+	LOG_DEBUG("%d\n",argc);	
+	LOG_DEBUG("Input File: %s\nOutput File: %s\n", argv[1], argv[2]);
 	
 	rbTreeNode programTree = NULL;
 	rbTreeNode labelTree = NULL;

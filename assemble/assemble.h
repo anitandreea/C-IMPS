@@ -1,11 +1,11 @@
 typedef struct assemblyInstruction {
-	char * opcode;
+	char opcode[5];
 	char * label;
 	int r1;
 	int r2;
 	int r3;
-	int immediate;
-	int address;
+	char * immediate;
+	char * address;
 } * aInstruction;
 
 typedef void (*assembleFunction)(aInstruction instruction);
