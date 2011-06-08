@@ -4,8 +4,8 @@ typedef struct assemblyInstruction {
 	int r1;
 	int r2;
 	int r3;
-	char * immediate;
 	char * address;
+	int line;
 } * aInstruction;
 
 typedef void (*assembleFunction)(aInstruction instruction);

@@ -29,8 +29,14 @@ unsigned char nodeColor(rbTreeNode node) {
 	    return node == NULL ? 0 : node->color;
 }
 
+rbTree rbTreeCreate() {
+	rbTree t = (rbTree)malloc(sizeof(struct tree));
+	t->root = NULL;
+	return t;
+}
+
 rbTreeNode rbCreateNode(void* key, void* value, unsigned char color, rbTreeNode left, rbTreeNode right) {
-	rbTreeNode result = malloc(sizeof(struct treeNode));
+	rbTreeNode result = (rbTreeNode)malloc(sizeof(struct treeNode));
 	result->key = key;
 	result->value = value;
 	result->color = color;
@@ -42,7 +48,8 @@ rbTreeNode rbCreateNode(void* key, void* value, unsigned char color, rbTreeNode 
 	return result;
 }
 
-rbTreeNode rbLookupNode(rbTreeNode node, void* key, compareFunc compare) {
+rbTreeNode rbLookupNode(rbTree tree, void* key, compareFunc compare) {
+	rbTreeNode node = tree->root;
 	while (node != NULL) {
 		int comparisonResult = compare(key, node->key);
 		if (comparisonResult == 0) {
@@ -57,14 +64,14 @@ rbTreeNode rbLookupNode(rbTreeNode node, void* key, compareFunc compare) {
 	return node;
 }
 
-void* rbLookup(rbTreeNode tree, void* key, compareFunc compare) {
+void* rbLookup(rbTree tree, void* key, compareFunc compare) {
 	rbTreeNode node = rbLookupNode(tree, key, compare);
 	return node == NULL ? NULL : node->value;
 }
 
-void rbReplaceNode(rbTreeNode tree, rbTreeNode oldNode, rbTreeNode newNode) {
+void rbReplaceNode(rbTree tree, rbTreeNode oldNode, rbTreeNode newNode) {
 	if (oldNode->parent == NULL) {
-		tree = newNode;
+		tree->root = newNode;
 	} else {
 		if (oldNode == oldNode->parent->left)
 			oldNode->parent->left = newNode;
@@ -76,7 +83,7 @@ void rbReplaceNode(rbTreeNode tree, rbTreeNode oldNode, rbTreeNode newNode) {
 	}
 }
 
-void rbRotateLeft(rbTreeNode tree, rbTreeNode node) {
+void rbRotateLeft(rbTree tree, rbTreeNode node) {
 	rbTreeNode right = node->right;
 	rbReplaceNode(tree, node, right);
 	node->right = right->left;
@@ -87,7 +94,7 @@ void rbRotateLeft(rbTreeNode tree, rbTreeNode node) {
     node->parent = right;
 }
 
-void rbRotateRight(rbTreeNode tree, rbTreeNode node) {
+void rbRotateRight(rbTree tree, rbTreeNode node) {
 	rbTreeNode left = node->left;
     rbReplaceNode(tree, node, left);
 	node->left = left->right;
@@ -98,7 +105,7 @@ void rbRotateRight(rbTreeNode tree, rbTreeNode node) {
 	node->parent = left;
 }
 
-void insertCase5(rbTreeNode tree, rbTreeNode node) {
+void insertCase5(rbTree tree, rbTreeNode node) {
 	node->parent->color = 0; //BLACK
 	grandparent(node)->color = 1; //RED
 	if (node == node->parent->left && node->parent == grandparent(node)->left) {
@@ -109,7 +116,7 @@ void insertCase5(rbTreeNode tree, rbTreeNode node) {
 	}
 }
 
-void insertCase4(rbTreeNode tree, rbTreeNode node) {
+void insertCase4(rbTree tree, rbTreeNode node) {
 	if (node == node->parent->right && node->parent == grandparent(node)->left) {
 		rbRotateLeft(tree, node->parent);
 		node = node->left;
@@ -120,16 +127,16 @@ void insertCase4(rbTreeNode tree, rbTreeNode node) {
 	insertCase5(tree, node);
 }
 
-void insertCase2(rbTreeNode tree, rbTreeNode node);
+void insertCase2(rbTree tree, rbTreeNode node);
 
-void insertCase1(rbTreeNode tree, rbTreeNode node) {
+void insertCase1(rbTree tree, rbTreeNode node) {
 	if (node->parent == NULL)
 		node->color = 0; // BLACK
 	else
 		insertCase2(tree, node);
 }
 
-void insertCase3(rbTreeNode tree, rbTreeNode node) {
+void insertCase3(rbTree tree, rbTreeNode node) {
 	if (nodeColor(uncle(node)) == 1) {  //RED
 		node->parent->color = 0; //BLACK
 		uncle(node)->color = 0; //BLACK
@@ -140,19 +147,19 @@ void insertCase3(rbTreeNode tree, rbTreeNode node) {
 	}
 }
 
-void insertCase2(rbTreeNode tree, rbTreeNode node) {
+void insertCase2(rbTree tree, rbTreeNode node) {
 	if (nodeColor(node->parent) == 0) //BLACK
 		return; /* Tree is still valid */
 	else
 		insertCase3(tree, node);
 }
 
-void rbInsert(rbTreeNode tree, void* key, void* value, compareFunc compare) {
+void rbInsert(rbTree tree, void* key, void* value, compareFunc compare) {
 	rbTreeNode newNode = rbCreateNode(key, value, 1, NULL, NULL);
-    if (tree == NULL) {
-		tree = newNode;
+    if (tree->root == NULL) {
+		tree->root = newNode;
 	} else {
-		rbTreeNode node = tree;
+		rbTreeNode node = tree->root;
 		while (1) {
 			int comparisonResult = compare(key, node->key);
 			if (comparisonResult == 0) {
@@ -190,7 +197,7 @@ rbTreeNode maximumNode(rbTreeNode node) {
 	return node;
 }
 
-void deleteCase6(rbTreeNode tree, rbTreeNode node) {
+void deleteCase6(rbTree tree, rbTreeNode node) {
 	sibling(node)->color = nodeColor(node->parent);
 	node->parent->color = 0;
 	if (node == node->parent->left) {
@@ -204,7 +211,7 @@ void deleteCase6(rbTreeNode tree, rbTreeNode node) {
 	}
 }
 
-void deleteCase5(rbTreeNode tree, rbTreeNode node) {
+void deleteCase5(rbTree tree, rbTreeNode node) {
 	if (node == node->parent->left && nodeColor(sibling(node)) == 0 &&
 		nodeColor(sibling(node)->left) == 1 && nodeColor(sibling(node)->right) == 0) {
 			sibling(node)->color = 1;
@@ -219,7 +226,7 @@ void deleteCase5(rbTreeNode tree, rbTreeNode node) {
 	deleteCase6(tree, node);
 }
 
-void deleteCase4(rbTreeNode tree, rbTreeNode node) {
+void deleteCase4(rbTree tree, rbTreeNode node) {
 	if (nodeColor(node->parent) == 1 && nodeColor(sibling(node)) == 0 &&
 		nodeColor(sibling(node)->left) == 0 && nodeColor(sibling(node)->right) == 0) {
  			sibling(node)->color = 1;
@@ -229,9 +236,9 @@ void deleteCase4(rbTreeNode tree, rbTreeNode node) {
 	}
 }
 
-void deleteCase1(rbTreeNode tree, rbTreeNode node);
+void deleteCase1(rbTree tree, rbTreeNode node);
 
-void deleteCase3(rbTreeNode tree, rbTreeNode node) {
+void deleteCase3(rbTree tree, rbTreeNode node) {
 	if (nodeColor(node->parent) == 0 && nodeColor(sibling(node)) == 0 &&
 		nodeColor(sibling(node)->left) == 0 && nodeColor(sibling(node)->right) == 0) { //All BLACK
 			sibling(node)->color = 1; //RED
@@ -241,7 +248,7 @@ void deleteCase3(rbTreeNode tree, rbTreeNode node) {
 	}
 }
 
-void deleteCase2(rbTreeNode tree, rbTreeNode node) {
+void deleteCase2(rbTree tree, rbTreeNode node) {
 	if (nodeColor(sibling(node)) == 1) { //RED
 		node->parent->color = 1; //RED
         sibling(node)->color = 0; //BLACK
@@ -253,14 +260,14 @@ void deleteCase2(rbTreeNode tree, rbTreeNode node) {
 	deleteCase3(tree, node);
 }
 
-void deleteCase1(rbTreeNode tree, rbTreeNode node) {
+void deleteCase1(rbTree tree, rbTreeNode node) {
 	if (node->parent == NULL)
 		return;
 	else
 		deleteCase2(tree, node);
 }
 
-void rbDelete(rbTreeNode tree, void* key, compareFunc compare) {
+void rbDelete(rbTree tree, void* key, compareFunc compare) {
 	rbTreeNode child;
 	rbTreeNode node = rbLookup(tree, key, compare);
 	if (node == NULL) return;  /* Key not found, do nothing */

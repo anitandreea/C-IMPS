@@ -7,20 +7,24 @@ typedef struct treeNode {
 		unsigned char color;
 } *rbTreeNode;
 
+typedef struct tree {
+	    rbTreeNode root;
+} *rbTree;
+
 rbTreeNode grandparent(rbTreeNode n);
 
 rbTreeNode sibling(rbTreeNode n);
 
 rbTreeNode uncle(rbTreeNode n);
 
-rbTreeNode rbTreeInit();
+rbTree rbTreeCreate();
 
 rbTreeNode rbCreateNode(void* key, void* value, unsigned char colour, rbTreeNode left, rbTreeNode right);
 
 typedef int (*compareFunc)(void* left, void* right);
 
-void* rbLookup(rbTreeNode node, void* key, compareFunc compare);
+void* rbLookup(rbTree tree, void* key, compareFunc compare);
 
-void rbInsert(rbTreeNode node, void* key, void* value, compareFunc compare);
+void rbInsert(rbTree tree, void* key, void* value, compareFunc compare);
 
-void rbDelete(rbTreeNode node, void* key, compareFunc compare);
+void rbDelete(rbTree tree, void* key, compareFunc compare);
