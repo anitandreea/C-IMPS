@@ -1,3 +1,5 @@
+#ifndef LIST_H
+#define LIST_H
 #include "assemble.h"
 
 typedef struct _listItem * listItem;
@@ -16,3 +18,5 @@ void freeList(listItem item);
 void printInstruction(aInstruction inst);
 
 void printList(listItem item);
+
+#endif

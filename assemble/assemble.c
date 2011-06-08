@@ -132,9 +132,6 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 	
-	LOG_DEBUG("%d\n",argc);	
-	LOG_DEBUG("Input File: %s\nOutput File: %s\n", argv[1], argv[2]);
-	
 	rbTree labelTree = rbTreeCreate();
 
 	listItem pList = parseInputFile(argv[1], labelTree);	

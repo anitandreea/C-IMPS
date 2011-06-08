@@ -1,3 +1,6 @@
+#ifndef RBTREE_H
+#define RBTREE_H
+
 typedef struct treeNode {
 	    void* key;
 		void* value;
@@ -30,3 +33,5 @@ void rbInsert(rbTree tree, void* key, void* value, compareFunc compare);
 void rbDelete(rbTree tree, void* key, compareFunc compare);
 
 void printTree(rbTree t);
+
+#endif

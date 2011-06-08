@@ -1,3 +1,6 @@
+#ifndef ASSEMBLE_H
+#define ASSEMBLE_H
+
 typedef struct assemblyInstruction {
 	char opcode[5];
 	char * label;
@@ -10,7 +13,4 @@ typedef struct assemblyInstruction {
 
 typedef void (*assembleFunction)(aInstruction instruction);
 
-typedef union labelReference {
-	int line;
-	assembleFunction assemble;
-} *labelRef;	
+#endif
