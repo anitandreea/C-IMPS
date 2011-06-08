@@ -10,7 +10,7 @@ typedef struct assemblyInstruction {
 
 typedef void (*assembleFunction)(aInstruction instruction);
 
-union labelReference {
+typedef union labelReference {
 	int line;
 	assembleFunction assemble;
-} labelRef;	
+} *labelRef;	

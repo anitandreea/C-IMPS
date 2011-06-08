@@ -15,7 +15,7 @@ rbTreeNode uncle(rbTreeNode n);
 
 rbTreeNode rbTreeInit();
 
-rbTreeNode CreateNode(void* key, void* value, unsigned char colour, rbTreeNode left, rbTreeNode right);
+rbTreeNode rbCreateNode(void* key, void* value, unsigned char colour, rbTreeNode left, rbTreeNode right);
 
 typedef int (*compareFunc)(void* left, void* right);
 
