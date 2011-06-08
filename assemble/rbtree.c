@@ -1,6 +1,7 @@
 #include "rbtree.h"
 #include <stdlib.h>
 #include <assert.h>
+#include <stdio.h>
 
 rbTreeNode grandparent(rbTreeNode node) {
 	assert (node != NULL);
@@ -294,3 +295,32 @@ void rbDelete(rbTree tree, void* key, compareFunc compare) {
 }
 
 
+void printTreeHelper(rbTreeNode n, int indent) {
+	int i;
+	const int identStep = 4;
+	if (n == NULL) {
+		fputs("<empty tree>", stdout);
+		return;
+	}
+
+	if (n->right != NULL) {
+		printTreeHelper(n->right, indent + identStep);
+	}
+
+	for(i=0; i<indent; i++)
+		fputs(" ", stdout);
+
+	if (n->color == 0)
+		printf("%s\n", (char *)n->key);
+	else
+		printf("<%s>\n", (char *)n->key);
+
+	if (n->left != NULL) {
+		printTreeHelper(n->left, indent + identStep);
+	}
+}
+
+void printTree(rbTree t) {
+	printTreeHelper(t->root, 0);
+	puts("");
+}

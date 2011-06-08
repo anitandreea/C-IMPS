@@ -5,64 +5,13 @@
 #include <stdarg.h>
 #include "rbtree.h"
 #include "assemble.h"
+#include "list.h"
 
 #define DEBUG 1
 
 const char * Iinst = "addi,subi,muli,lw,sw,beq,bne,blt,bgt,ble,bge";
 const char * Rinst = "add,sub,mul,jr";
 const char * Jinst = "jmp,jal";
-
-typedef struct _listItem * listItem;
-
-struct _listItem {
-	aInstruction assemblyInstruction;
-	listItem next;
-};
-
-listItem lCreateItem(aInstruction assemblyInstruction, listItem next) {
-	listItem newItem = (listItem)malloc(sizeof(struct _listItem));
-	if(newItem == NULL) {
-		perror("malloc"); exit(1);
-	}
-	newItem->assemblyInstruction = assemblyInstruction;
-	newItem->next = next;
-	return newItem;
-}
-
-listItem lInsertTail(aInstruction assemblyInstruction, listItem item) {
-	if( item == NULL ) {
-		listItem newItem = lCreateItem(assemblyInstruction, NULL);
-		return newItem;
-	}
-	item->next = lInsertTail(assemblyInstruction, item->next);
-	return item;
-}
-
-void freeList(listItem item) {
-	if(item == NULL) return;
-	freeList(item->next);
-	free(item);
-}
-
-void printInstruction(aInstruction inst) {
-	if( inst->label != NULL ) {
-		printf("Label: %s\n", inst->label);
-	}
-	printf("Line: %d; Opcode: %s\n", inst->line, inst->opcode);
-	printf("R1: %d\n", inst->r1);
-	printf("R2: %d\n", inst->r2);
-	printf("R3: %d\n", inst->r3);
-	if( inst->address != NULL ) {
-		printf("Address: %s\n", inst->address);
-	}
-	printf("\n");
-}
-
-void printList(listItem item) {
-	if(item==NULL) return;
-	printInstruction(item->assemblyInstruction);
-	printList(item->next);
-}
 
 aInstruction createInstruction() {
 	aInstruction assemblyInst = (aInstruction)malloc(sizeof(struct assemblyInstruction)); 
@@ -71,35 +20,6 @@ aInstruction createInstruction() {
 	assemblyInst->r3 = 0;
 	assemblyInst->line = 0;
 	return assemblyInst;
-}
-
-#define INDENT_STEP  4
-
-void print_tree_helper(rbTreeNode n, int indent);
-
-void print_tree(rbTree t) {
-	print_tree_helper(t->root, 0);
-    puts("");
-}
-
-void print_tree_helper(rbTreeNode n, int indent) {
-	int i;
-    if (n == NULL) {
-		fputs("<empty tree>", stdout);
-		return;
-	}
-	if (n->right != NULL) {
-		print_tree_helper(n->right, indent + INDENT_STEP);
-	}
-	for(i=0; i<indent; i++)
-		fputs(" ", stdout);
-			if (n->color == 0)
-				printf("%s\n", (char *)n->key);
-			else
-				printf("<%s>\n", (char *)n->key);
-			if (n->left != NULL) {
-				print_tree_helper(n->left, indent + INDENT_STEP);
-			}
 }
 
 void LOG_DEBUG( char *format, ... ) {
@@ -220,7 +140,8 @@ int main(int argc, char *argv[]) {
 	listItem pList = parseInputFile(argv[1], labelTree);	
 
 	printList(pList);
-	print_tree(labelTree);
+	printTree(labelTree);
+	
 	freeList(pList);
 	free(labelTree);
 	return 0;
