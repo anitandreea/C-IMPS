@@ -29,7 +29,7 @@ unsigned char nodeColor(rbTreeNode node) {
 	    return node == NULL ? 0 : node->color;
 }
 
-rbTreeNode CreateNode(void* key, void* value, unsigned char color, rbTreeNode left, rbTreeNode right) {
+rbTreeNode rbCreateNode(void* key, void* value, unsigned char color, rbTreeNode left, rbTreeNode right) {
 	rbTreeNode result = malloc(sizeof(struct treeNode));
 	result->key = key;
 	result->value = value;
@@ -148,7 +148,7 @@ void insertCase2(rbTreeNode tree, rbTreeNode node) {
 }
 
 void rbInsert(rbTreeNode tree, void* key, void* value, compareFunc compare) {
-	rbTreeNode newNode = CreateNode(key, value, 1, NULL, NULL);
+	rbTreeNode newNode = rbCreateNode(key, value, 1, NULL, NULL);
     if (tree == NULL) {
 		tree = newNode;
 	} else {

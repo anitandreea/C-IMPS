@@ -7,10 +7,6 @@ typedef struct treeNode {
 		unsigned char color;
 } *rbTreeNode;
 
-typedef struct assemblyInstruction {
-
-} *aInstruction;
-
 rbTreeNode grandparent(rbTreeNode n);
 
 rbTreeNode sibling(rbTreeNode n);
