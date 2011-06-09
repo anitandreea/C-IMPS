@@ -28,17 +28,19 @@ void freeList(listItem item) {
 }
 
 void printInstruction(aInstruction inst) {
-	if( inst->label != NULL ) {
-		printf("Label: %s\n", inst->label);
+	if( inst != NULL ) {
+		if( inst->label != NULL ) {
+			printf("Label: %s\n", inst->label);
+		}
+		printf("Line: %d; Opcode: %s\n", inst->line, inst->opcode);
+		printf("R1: %d\n", inst->r1);
+		printf("R2: %d\n", inst->r2);
+		printf("R3: %d\n", inst->r3);
+		if( inst->address != NULL ) {
+			printf("Address: %s\n", inst->address);
+		}
+		printf("\n");
 	}
-	printf("Line: %d; Opcode: %s\n", inst->line, inst->opcode);
-	printf("R1: %d\n", inst->r1);
-	printf("R2: %d\n", inst->r2);
-	printf("R3: %d\n", inst->r3);
-	if( inst->address != NULL ) {
-		printf("Address: %s\n", inst->address);
-	}
-	printf("\n");
 }
 
 void printList(listItem item) {

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdarg.h>
+#include <ctype.h>
 #include "rbtree.h"
 #include "assemble.h"
 #include "list.h"
@@ -18,10 +19,41 @@ const char * OpCode[18] = {"halt", "add", "addi", "sub", "subi", "mul",
 	"muli", "lw", "sw", "beq", "bne", "blt", "bgt", "ble", "bge", 
 	"jmp", "jr", "jal"};
 
+void LOG_DEBUG( char *format, ... ) {
+	//Debugging mode prints instructions and object file code.
+	if(DEBUG == 1) {
+		va_list arguments;
+		va_start( arguments, format);
+		vprintf(format, arguments);
+		va_end(arguments);
+	}
+}
+
+char *printBits( int number ) {
+	char * binary = (char *)malloc(32*sizeof(char));
+	int mask = 1 << 31;
+	int i;
+	int s = 1;
+	for(i=0;i<32;i++) {
+		if((number & mask) == 0) {
+			strcat(binary,"0");
+		} else { 
+			strcat(binary, "1");
+		}
+		if(s % 8 == 0) {
+			strcat(binary, " ");
+		}
+		++s;
+		number = number << 1;
+	}
+	return binary;
+}
+
+
 int findOpcode(char * Opcode) {
 	int i;
 	for(i = 0; i<18; i++) {
-		if(OpCode[i] == Opcode) {
+		if(strcmp(OpCode[i], Opcode) == 0) {
 			return i;
 		}
 	}
@@ -35,16 +67,6 @@ aInstruction createInstruction() {
 	assemblyInst->r3 = 0;
 	assemblyInst->line = 0;
 	return assemblyInst;
-}
-
-void LOG_DEBUG( char *format, ... ) {
-	//Debugging mode prints instructions and object file code.
-	if(DEBUG == 1) {
-		va_list arguments;
-		va_start( arguments, format);
-		vprintf(format, arguments);
-		va_end(arguments);
-	}
 }
 
 int compareStr(void * left, void * right) {
@@ -79,6 +101,7 @@ listItem parseInputFile(char * fileName, rbTree labelTree) {
 		int currentLine = 0;
 		while(fgets(readBuffer, sizeof(readBuffer), sourceFile) != NULL) {
 			unsigned char label = 0;
+			unsigned char isEmpty = 1;
 			aInstruction assemblyInst = createInstruction(); 
 			assemblyInst->line = currentLine;
 			char * readToken = strtok(readBuffer, instSplit);
@@ -88,35 +111,38 @@ listItem parseInputFile(char * fileName, rbTree labelTree) {
 				readToken = strtok(NULL, instSplit);
 				label = 1;
 			}
+			strcpy(assemblyInst->opcode, readToken); 
 			if(strstr(Rinst, readToken) != NULL) {
-				strcpy(assemblyInst->opcode, readToken); 
 				assemblyInst->r1 = atoi(strtok(NULL, instSplit));				
 				assemblyInst->r2 = atoi(strtok(NULL, instSplit));				
 				assemblyInst->r3 = atoi(strtok(NULL, instSplit));
+				isEmpty = 0;
 			} else if(strstr(Iinst, readToken) != NULL) {
-				strcpy(assemblyInst->opcode, readToken); 
 				assemblyInst->r1 = atoi(strtok(NULL, instSplit));
 				assemblyInst->r2 = atoi(strtok(NULL, instSplit));
 				readToken = strtok(NULL, instSplit);
 				assemblyInst->address = (char *)malloc(sizeof(char)*strlen(readToken));
-				strcpy(assemblyInst->address, readToken);
+				strncpy(assemblyInst->address, readToken, isspace(readToken[strlen(readToken)-1]) ? strlen(readToken)-1 : strlen(readToken) );
+				isEmpty = 0;
 			} else if(strstr(Jinst, readToken) != NULL) {
-				strcpy(assemblyInst->opcode, readToken); 
 				readToken = strtok(NULL, instSplit);
 				assemblyInst->address = (char *)malloc(sizeof(char)*strlen(readToken));
-				strcpy(assemblyInst->address, readToken);
+ 				strncpy(assemblyInst->address, readToken, isspace(readToken[strlen(readToken)-1]) ? strlen(readToken)-1 : strlen(readToken) );
+				isEmpty = 0;
 			} else if(strstr(".skip", readToken) != NULL) { 
-				strcpy(assemblyInst->opcode, readToken); 
 				assemblyInst->r1 = atoi(strtok(NULL, instSplit));				
 				currentLine += assemblyInst->r1-1;
+				isEmpty = 0;
 			} else if(strstr(".fill", readToken) != NULL) {
-				strcpy(assemblyInst->opcode, readToken); 
 				assemblyInst->r1 = atoi(strtok(NULL, instSplit));				
-			} else {
-				strcpy(assemblyInst->opcode, readToken); 
+				isEmpty = 0;
+			} else if(strstr(readToken, "halt") != NULL) {
+				isEmpty=0;
 			}
-			++currentLine;
-			pList =	lInsertTail(assemblyInst, pList);
+			if(!isEmpty) {			
+				++currentLine;
+				pList =	lInsertTail(assemblyInst, pList);
+			}
 			if(label == 1) {
 				rbInsert(labelTree, (void *)assemblyInst->label, (void *)assemblyInst, compareStr);
 			}
@@ -126,30 +152,76 @@ listItem parseInputFile(char * fileName, rbTree labelTree) {
 	return pList;
 }
 
+int signReduction( int num ) {
+	return num & 0x0000FFFF;
+}
+
+int resolveImmediate(char * address) {
+	int result;
+	if(strstr(address, "x") != NULL) {
+		result = (int)strtol(address, NULL, 16);	
+	} else {
+		result = atoi(address);
+	} 
+	result = signReduction(result);
+	return result;
+}
+
 void assemble( char * outFile, listItem pList, rbTree labelTree ) {
 	FILE *fp = fopen(outFile,"ab");
 	while(pList != NULL) {
 		aInstruction aInst = pList->assemblyInstruction;
 		int inst = 0;
-		if(strstr(".fill", aInst->opcode) != NULL) {	
+		if(strstr(aInst->opcode, ".fill") != NULL) {	
 			inst = aInst->r1;
 			fwrite(&inst, sizeof(int), 1, fp);
-		} else if(strstr(".skip", aInst->opcode) != NULL) {
+		} else if(strstr(aInst->opcode, ".skip") != NULL) {
 			int i;
 			for(i = aInst->r1; i>0; i--) {
 				fwrite(&inst, sizeof(int), 1, fp);
 			}	
 		} else if(strstr(Rinst, aInst->opcode) != NULL) {
 			int opNum = findOpcode(aInst->opcode);
-			inst = ( opNum << 26 ) + (aInst->r1 << 19 ) + (aInst->r2 << 14) + (aInst->r3 << 9);
+			inst = ( opNum << 26 ) | (aInst->r1 << 21 ) | (aInst->r2 << 16) | (aInst->r3 << 11);
 			fwrite(&inst, sizeof(int), 1, fp);
 		} else if(strstr(Jinst, aInst->opcode) != NULL) {
-
+			int opNum = findOpcode(aInst->opcode);
+			inst = opNum << 26;
+			if(strstr(aInst->address, "x") != NULL) {
+				inst |= 4*resolveImmediate(aInst->address);	
+			} else { 
+				aInstruction labelRef = rbLookup(labelTree, aInst->address, compareStr);
+				printInstruction(labelRef);
+				inst |= 4*labelRef->line;
+			}
+			fwrite(&inst, sizeof(int), 1, fp);
 		} else if(strstr(Binst, aInst->opcode) != NULL) {
-		
+			int opNum = findOpcode(aInst->opcode);
+			int relAddress;
+			inst = opNum << 26;
+			aInstruction labelRef = rbLookup(labelTree, aInst->address, compareStr);
+			if(labelRef == NULL) {
+				relAddress = resolveImmediate(aInst->address);		
+			} else {
+				printInstruction(labelRef);
+				relAddress = labelRef->line - aInst->line;	
+			}
+			inst |= (aInst->r1 << 21) | (aInst->r2 << 16) | relAddress;	
+			fwrite(&inst, sizeof(int), 1, fp);
 		} else if (strstr(Iinst, aInst->opcode) != NULL && strstr(Binst, aInst->opcode) == NULL) {
-			
-		} else {
+			int opNum = findOpcode(aInst->opcode);
+			int relAddress;
+			inst = opNum << 26;
+			aInstruction labelRef = rbLookup(labelTree, aInst->address, compareStr);
+			if(labelRef == NULL) {
+				relAddress = resolveImmediate(aInst->address);
+			} else {
+				printInstruction(labelRef);
+				relAddress = 4*labelRef->line;	
+			}		
+			inst |= (aInst->r1 << 21) | (aInst->r2 << 16) | relAddress;	
+			fwrite(&inst, sizeof(int), 1, fp);
+		} else if (strstr(aInst->opcode, "halt") != NULL){
 			fwrite(&inst, sizeof(int), 1, fp);
 		}
 		pList = pList->next;
@@ -160,7 +232,7 @@ void assemble( char * outFile, listItem pList, rbTree labelTree ) {
 int main(int argc, char *argv[]) {
 	if(argc < 3) {
 		printf("Wrong arguments");
-		exit(1);
+		exit(1); 
 	}
 	
 	rbTree labelTree = rbTreeCreate();

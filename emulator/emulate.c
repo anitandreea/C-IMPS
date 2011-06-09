@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 
-#define DEBUG 0
+#define DEBUG 1
 #define opCodeMask 0
 #define r1Mask 1
 #define r2Mask 2
