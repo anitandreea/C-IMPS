@@ -23,6 +23,13 @@ listItem lInsertTail(aInstruction assemblyInstruction, listItem item) {
 
 void freeList(listItem item) {
 	if(item == NULL) return;
+	if(item->assemblyInstruction->label != NULL) {
+		free(item->assemblyInstruction->label);
+	}
+	if(item->assemblyInstruction->address != NULL) {
+		free(item->assemblyInstruction->address);
+	}
+	free(item->assemblyInstruction);
 	freeList(item->next);
 	free(item);
 }

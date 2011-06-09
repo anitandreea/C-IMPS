@@ -29,26 +29,18 @@ void LOG_DEBUG( char *format, ... ) {
 	}
 }
 
-char *printBits( int number ) {
-	char * binary = (char *)malloc(32*sizeof(char));
-	int mask = 1 << 31;
-	int i;
-	int s = 1;
-	for(i=0;i<32;i++) {
-		if((number & mask) == 0) {
-			strcat(binary,"0");
-		} else { 
-			strcat(binary, "1");
-		}
-		if(s % 8 == 0) {
-			strcat(binary, " ");
-		}
-		++s;
-		number = number << 1;
-	}
-	return binary;
+void freeTreeHelper( rbTreeNode node ) {
+	if( node == NULL ) return;
+	freeTreeHelper( node->left );
+	freeTreeHelper( node->right );
+	free(node);
 }
 
+void freeTree( rbTree tree ) {
+	if( tree->root == NULL ) return;
+	freeTreeHelper(tree->root);
+	free(tree);
+}
 
 int findOpcode(char * Opcode) {
 	int i;
@@ -142,6 +134,8 @@ listItem parseInputFile(char * fileName, rbTree labelTree) {
 			if(!isEmpty) {			
 				++currentLine;
 				pList =	lInsertTail(assemblyInst, pList);
+			} else {
+				free(assemblyInst);
 			}
 			if(label == 1) {
 				rbInsert(labelTree, (void *)assemblyInst->label, (void *)assemblyInst, compareStr);
@@ -245,6 +239,6 @@ int main(int argc, char *argv[]) {
 	assemble( argv[2], pList, labelTree );
 
 	freeList(pList);
-	free(labelTree);
+	freeTree(labelTree);
 	return 0;
 }
